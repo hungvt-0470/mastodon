@@ -165,7 +165,7 @@ const Firehose = ({ feedType, multiColumn }) => {
         <ColumnSettings />
       </ColumnHeader>
 
-      <div className='account__section-headline'>
+      {/* <div className='account__section-headline'>
         <NavLink exact to='/public/local'>
           <FormattedMessage tagName='div' id='firehose.local' defaultMessage='This server' />
         </NavLink>
@@ -177,7 +177,7 @@ const Firehose = ({ feedType, multiColumn }) => {
         <NavLink exact to='/public'>
           <FormattedMessage tagName='div' id='firehose.all' defaultMessage='All' />
         </NavLink>
-      </div>
+      </div> */}
 
       <StatusListContainer
         prepend={prependBanner}

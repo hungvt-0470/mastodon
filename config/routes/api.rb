@@ -62,7 +62,7 @@ namespace :api, format: false do
 
     resources :job_applications, path: 'applications', except: [:create] do
       collection do
-        get :applied_jobs  # Thêm route mới cho applied_jobs
+        get :applied_jobs # Thêm route mới cho applied_jobs
       end
       member do
         put :withdraw

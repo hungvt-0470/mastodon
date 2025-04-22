@@ -20,11 +20,11 @@ module Organization::Avatar
 
   included do
     # Avatar upload
-    has_attached_file :avatar, 
-      styles: ->(f) { avatar_styles(f) }, 
-      convert_options: { all: '+profile "!icc,*" +set date:modify +set date:create +set date:timestamp' }, 
-      processors: [:lazy_thumbnail],
-      default_url: '/avatars/original/missing.png'
+    has_attached_file :avatar,
+                      styles: ->(f) { avatar_styles(f) },
+                      convert_options: { all: '+profile "!icc,*" +set date:modify +set date:create +set date:timestamp' },
+                      processors: [:lazy_thumbnail],
+                      default_url: '/avatars/original/missing.png'
 
     validates_attachment_content_type :avatar, content_type: AVATAR_IMAGE_MIME_TYPES
     validates_attachment_size :avatar, less_than: AVATAR_LIMIT

@@ -5,6 +5,46 @@
 # Table name: users
 #
 #  id                        :bigint(8)        not null, primary key
+#  approved                  :boolean          default(TRUE), not null
+#  chosen_languages          :string           is an Array
+#  confirmation_sent_at      :datetime
+#  confirmation_token        :string
+#  confirmed_at              :datetime
+#  consumed_timestep         :integer
+#  current_sign_in_at        :datetime
+#  disabled                  :boolean          default(FALSE), not null
+#  email                     :string           default(""), not null
+#  encrypted_otp_secret      :string
+#  encrypted_otp_secret_iv   :string
+#  encrypted_otp_secret_salt :string
+#  encrypted_password        :string           default(""), not null
+#  last_emailed_at           :datetime
+#  last_sign_in_at           :datetime
+#  locale                    :string
+#  otp_backup_codes          :string           is an Array
+#  otp_required_for_login    :boolean          default(FALSE), not null
+#  otp_secret                :string
+#  reset_password_sent_at    :datetime
+#  reset_password_token      :string
+#  saved_jobs                :string           default([]), is an Array
+#  settings                  :text
+#  sign_in_count             :integer          default(0), not null
+#  sign_in_token             :string
+#  sign_in_token_sent_at     :datetime
+#  sign_up_ip                :inet
+#  time_zone                 :string
+#  unconfirmed_email         :string
+#  user_type                 :string           default("guest")
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  account_id                :bigint(8)        not null
+#  created_by_application_id :bigint(8)
+#  invite_id                 :bigint(8)
+#  organization_id           :bigint(8)
+#  role_id                   :bigint(8)
+#  webauthn_id               :string
+#
+#  id                        :bigint(8)        not null, primary key
 #  email                     :string           default(""), not null
 #  created_at                :datetime         not null
 #  updated_at                :datetime         not null
@@ -118,6 +158,7 @@ class User < ApplicationRecord
   validates :website, absence: true, on: :create
   validates :confirm_password, absence: true, on: :create
   validate :validate_role_elevation
+  validates :saved_jobs, length: { maximum: 100 }
 
   scope :account_not_suspended, -> { joins(:account).merge(Account.without_suspended) }
   scope :recent, -> { order(id: :desc) }
@@ -155,26 +196,25 @@ class User < ApplicationRecord
   attr_reader :invite_code
   attr_writer :external, :bypass_invite_request_check, :current_account
 
-  def student? 
+  def student?
     user_type == 'student'
   end
 
-  def organization? 
+  def organization?
     user_type == 'organization'
   end
 
-  def guest? 
+  def guest?
     user_type == 'guest'
   end
 
-  def can_post_job? 
+  def can_post_job?
     organization? && organization.present?
   end
 
   def can_seek_job?
     student? || organization?
   end
-  
   def can_apply_job?
     student?
   end
@@ -584,13 +624,13 @@ class User < ApplicationRecord
 
   def set_user_type_from_email
     if email.present?
-      if email.end_with?('@vnu.edu.vn')
-        self.user_type = 'student'
-      elsif email.end_with?('@gmail.com')
-        self.user_type = 'guest'
-      else 
-        self.user_type = 'organization'
-      end
+      self.user_type = if email.end_with?('@vnu.edu.vn')
+                         'student'
+                       elsif email.end_with?('@gmail.com')
+                         'guest'
+                       else
+                         'organization'
+                       end
     end
   end
 
@@ -598,12 +638,10 @@ class User < ApplicationRecord
     return unless organization?
 
     domain = email_domain
-    return unless domain.present?
+    return if domain.blank?
 
     org = Organization.find_by(email_domain: domain)
-    
-    if org
-      update(organization: org)
-    end
+
+    update(organization: org) if org
   end
 end

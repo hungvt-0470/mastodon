@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 class REST::JobSerializer < ActiveModel::Serializer
-  attributes :id, :title, :description, :requirements, :location, 
+  attributes :id, :title, :description, :requirements, :location,
              :salary_range, :deadline, :status, :job_type, :job_category,
-             :created_at, :views_count, :application_count,
-             :saved
+             :created_at, :views_count, :application_count
 
   belongs_to :organization, serializer: REST::OrganizationSerializer
   belongs_to :user, serializer: REST::UserSerializer

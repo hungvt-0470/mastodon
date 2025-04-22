@@ -84,15 +84,9 @@ services:
     volumes:
       - ./public/system:/mastodon/public/system
       - ./public/assets:/mastodon/public/assets:rw
-      - ./config/initializers/disable_ssl.rb:/mastodon/config/initializers/disable_ssl.rb
-      - ./app/views:/mastodon/app/views
-      - ./app/models:/mastodon/app/models
-      - ./app/controllers:/mastodon/app/controllers
-      - ./app/serializers:/mastodon/app/serializers
+      - ./app:/mastodon/app
       - ./db/migrate:/mastodon/db/migrate
-      - ./config/initializers:/mastodon/config/initializers
-      - ./config/routes:/mastodon/config/routes
-      - ./config/locales:/mastodon/config/locales
+      - ./config:/mastodon/config
 
   streaming:
     # You can uncomment the following lines if you want to not use the prebuilt image, for example if you have local code changes

@@ -17,7 +17,7 @@
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null
 #  job_type        :string           default("full_time")
-#  job_category    :string    
+#  job_category    :string
 #  contact_email   :string
 #  views_count     :integer          default(0)
 #  application_count :integer       default(0)
@@ -40,7 +40,6 @@ class Job < ApplicationRecord
   validates :job_type, inclusion: { in: JOB_TYPES }
   validates :contact_email, email_address: true, if: -> { contact_email.present? }
   validate :validate_organization_can_post_job
-  validate :validate_deadline
 
   # Associations
   belongs_to :organization
@@ -56,18 +55,22 @@ class Job < ApplicationRecord
   scope :recent, -> { order(created_at: :desc) }
   scope :by_organization, ->(org_id) { where(organization_id: org_id) }
   scope :by_job_type, ->(job_type) { where(job_type: job_type) if job_type.present? }
-  scope :by_query, ->(query) {
-    where('title ILIKE :q OR description ILIKE :q', q: "%#{query}%") if query.present?
+  scope :by_job_category, ->(job_category) { where(job_category: job_category) if job_category.present? }
+  scope :by_query, lambda { |query|
+    if query.present?
+      joins(:organization)
+        .where('jobs.title ILIKE :q OR jobs.description ILIKE :q OR organizations.name ILIKE :q', q: "%#{query}%")
+    end
   }
-  scope :deadline_approaching, -> {
-    where('deadline IS NOT NULL AND deadline > ? AND deadline < ?', Time.now, 7.days.from_now)
+  scope :deadline_approaching, lambda {
+    where('deadline IS NOT NULL AND deadline > ? AND deadline < ?', Time.zone.now, 7.days.from_now)
   }
 
   # Callbacks
   before_validation :set_default_status, on: :create
   before_validation :set_default_contact_email, on: :create
   # after_create :notify_organization_members
-  # after_update :notify_status_change, if: :saved_change_to_status?
+  after_update :notify_status_change, if: :saved_change_to_status?
 
   # Instance methods
   def open?
@@ -95,7 +98,7 @@ class Job < ApplicationRecord
   end
 
   def deadline_passed?
-    deadline.present? && deadline < Time.now
+    deadline.present? && deadline < Time.zone.now
   end
 
   def increment_views!
@@ -103,11 +106,12 @@ class Job < ApplicationRecord
   end
 
   def applied_by?(user)
-    job_applications.where(user_id: user.id).exists?
+    job_applications.exists?(user_id: user.id)
   end
 
   def saved_by?(user)
-    return false unless user.present?
+    return false if user.blank?
+
     saved_jobs = user.saved_jobs || []
     saved_jobs.include?(id.to_s)
   end
@@ -119,15 +123,11 @@ class Job < ApplicationRecord
   private
 
   def validate_organization_can_post_job
-    if organization.blank?
-      errors.add(:organization, I18n.t('jobs.errors.organization_required'))
-    end
+    errors.add(:organization, I18n.t('jobs.errors.organization_required')) if organization.blank?
   end
 
   def validate_deadline
-    if deadline.present? && deadline < Time.now
-      errors.add(:deadline, I18n.t('jobs.errors.deadline_past'))
-    end
+    errors.add(:deadline, I18n.t('jobs.errors.deadline_past')) if deadline.present? && deadline < Time.zone.now
   end
 
   def set_default_status
@@ -142,12 +142,12 @@ class Job < ApplicationRecord
   #   OrganizationMailer.new_job_posted(self).deliver_later
   # end
 
-  # def notify_status_change
-  #   if status_previously_changed?(from: 'open', to: 'closed')
-  #     # Notify applicants that the job was closed
-  #     job_applications.each do |application|
-  #       JobMailer.job_closed_notification(application).deliver_later
-  #     end
-  #   end
-  # end
+  def notify_status_change
+    if status_previously_changed?(from: 'open', to: 'closed')
+      # Notify applicants that the job was closed
+      job_applications.each do |application|
+        JobMailer.job_closed_notification(application).deliver_later
+      end
+    end
+  end
 end
