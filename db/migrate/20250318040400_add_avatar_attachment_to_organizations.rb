@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AddAvatarAttachmentToOrganizations < ActiveRecord::Migration[8.0]
   def up
     safety_assured do
@@ -7,7 +9,6 @@ class AddAvatarAttachmentToOrganizations < ActiveRecord::Migration[8.0]
         t.integer  :avatar_file_size
         t.datetime :avatar_updated_at
       end
-      
       # Xóa cột avatar cũ nếu không còn cần thiết
       remove_column :organizations, :avatar if column_exists?(:organizations, :avatar)
     end

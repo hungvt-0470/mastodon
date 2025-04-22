@@ -57,15 +57,14 @@ class Api::V1::OrganizationsController < Api::BaseController
 
   def destroy
     @organization = Organization.find(params[:id])
-    
     unless current_user.organization? && current_user.organization_id == @organization.id
       render json: { error: I18n.t('organizations.errors.not_authorized') }, status: 403
       return
     end
-    
+
     # Remove organization association from all users
     @organization.users.update_all(organization_id: nil)
-    
+
     if @organization.destroy
       render json: { success: true }, status: 200
     else
@@ -76,7 +75,6 @@ class Api::V1::OrganizationsController < Api::BaseController
   def members
     @organization = Organization.find(params[:id])
     @users = @organization.users.page(params[:page]).per(20)
-    
     render json: @users, each_serializer: REST::AccountSerializer
   end
 
@@ -91,8 +89,6 @@ class Api::V1::OrganizationsController < Api::BaseController
   end
 
   def check_organization_ownership
-    unless current_user.organization? && current_user.organization_id == @organization.id
-      render json: { error: I18n.t('organizations.errors.not_authorized') }, status: 403
-    end
+    render json: { error: I18n.t('organizations.errors.not_authorized') }, status: 403 unless current_user.organization? && current_user.organization_id == @organization.id
   end
 end

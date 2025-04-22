@@ -38,12 +38,12 @@ class JobApplication < ApplicationRecord
   belongs_to :job, counter_cache: :application_count
   has_attached_file :resume,
                     storage: :filesystem,
-                    path: ":rails_root/public/system/job_applications/:id/:style/:filename",
-                    url: "/system/job_applications/:id/:style/:filename"
+                    path: ':rails_root/public/system/job_applications/:id/:style/:filename',
+                    url: '/system/job_applications/:id/:style/:filename'
 
-  validates_attachment_content_type :resume, 
-                                   content_type: ['application/pdf', 'application/msword', 
-                                                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  validates_attachment_content_type :resume,
+                                    content_type: ['application/pdf', 'application/msword',
+                                                   'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
   validates_attachment_size :resume, less_than: 5.megabytes
 
   # Scopes
@@ -53,15 +53,15 @@ class JobApplication < ApplicationRecord
   scope :accepted, -> { where(status: 'accepted') }
   scope :rejected, -> { where(status: 'rejected') }
   scope :withdrawn, -> { where(status: 'withdrawn') }
-  scope :active, -> { where(status: ['pending', 'reviewing', 'interviewed']) }
+  scope :active, -> { where(status: %w(pending reviewing interviewed)) }
   scope :by_job, ->(job_id) { where(job_id: job_id) }
   scope :by_user, ->(user_id) { where(user_id: user_id) }
   scope :recent, -> { order(created_at: :desc) }
 
   # Callbacks
-  # after_create :notify_job_poster
-  # after_update :notify_status_change, if: :saved_change_to_status?
+  after_create :notify_job_poster
   after_create :increment_application_count
+  after_update :notify_status_change, if: :saved_change_to_status?
 
   # Instance methods
   def pending?
@@ -111,39 +111,33 @@ class JobApplication < ApplicationRecord
   private
 
   def validate_user_can_apply
-    unless user&.can_apply_job?
-      errors.add(:user, I18n.t('job_applications.errors.cannot_apply'))
-    end
+    errors.add(:user, I18n.t('job_applications.errors.cannot_apply')) unless user&.can_apply_job?
   end
 
   def validate_job_is_open
-    if job.present? && !job.open?
-      errors.add(:job, I18n.t('job_applications.errors.job_closed'))
-    end
+    errors.add(:job, I18n.t('job_applications.errors.job_closed')) if job.present? && !job.open?
   end
 
   def validate_one_application_per_job_per_user
-    if JobApplication.exists?(user_id: user_id, job_id: job_id)
-      errors.add(:base, I18n.t('job_applications.errors.already_applied'))
-    end
+    errors.add(:base, I18n.t('job_applications.errors.already_applied')) if JobApplication.exists?(user_id: user_id, job_id: job_id)
   end
 
-  # def notify_job_poster
-  #   JobMailer.new_application_notification(self).deliver_later
-  # end
+  def notify_job_poster
+    JobMailer.new_application_notification(self).deliver_later
+  end
 
-  # def notify_status_change
-  #   case status
-  #   when 'reviewing'
-  #     JobMailer.application_reviewing_notification(self).deliver_later
-  #   when 'interviewed'
-  #     JobMailer.application_interview_notification(self).deliver_later
-  #   when 'accepted'
-  #     JobMailer.application_accepted_notification(self).deliver_later
-  #   when 'rejected'
-  #     JobMailer.application_rejected_notification(self).deliver_later
-  #   end
-  # end
+  def notify_status_change
+    case status
+    when 'reviewing'
+      JobMailer.application_reviewing_notification(self).deliver_later
+    when 'interviewed'
+      JobMailer.application_interview_notification(self).deliver_later
+    when 'accepted'
+      JobMailer.application_accepted_notification(self).deliver_later
+    when 'rejected'
+      JobMailer.application_rejected_notification(self).deliver_later
+    end
+  end
 
   def increment_application_count
     job.increment!(:application_count)

@@ -41,24 +41,29 @@ namespace :api, format: false do
         get :members
       end
     end
-    
+
     resources :jobs do
       collection do
         get :my_jobs
         get :saved_jobs
+        get :created_jobs
       end
-      
+
       member do
         post :save_job
         delete :unsave_job
       end
-      
+
       resources :job_applications, path: 'applications', only: [:create, :index], controller: 'job_applications' do
         get :index, action: :index_by_job, on: :collection
+        get :check_applied, on: :collection
       end
     end
-    
-    resources :job_applications, path: 'applications', except: [:create, :destroy] do
+
+    resources :job_applications, path: 'applications', except: [:create] do
+      collection do
+        get :applied_jobs # Thêm route mới cho applied_jobs
+      end
       member do
         put :withdraw
       end

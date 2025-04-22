@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AddJobFeaturesToUsers < ActiveRecord::Migration[8.0]
   disable_ddl_transaction!
 
@@ -5,7 +7,6 @@ class AddJobFeaturesToUsers < ActiveRecord::Migration[8.0]
     # Remove if existed
     safety_assured do
       remove_index :users, :user_type, if_exists: true
-      
       remove_column :users, :user_type, if_exists: true
       remove_column :users, :can_post_job, if_exists: true
       remove_column :users, :can_seek_job, if_exists: true

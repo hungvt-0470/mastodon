@@ -34,6 +34,6 @@ class REST::OrganizationSerializer < ActiveModel::Serializer
   end
 
   def description
-    object.description.presence || ""
+    object.description.presence || ''
   end
 end
