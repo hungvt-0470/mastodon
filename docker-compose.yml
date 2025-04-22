@@ -28,36 +28,36 @@ services:
     volumes:
       - ./redis:/data
 
-  # es:
-  #   restart: always
-  #   image: docker.elastic.co/elasticsearch/elasticsearch:7.17.4
-  #   environment:
-  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.enforce.bootstrap.checks=true"
-  #     - "xpack.license.self_generated.type=basic"
-  #     - "xpack.security.enabled=false"
-  #     - "xpack.watcher.enabled=false"
-  #     - "xpack.graph.enabled=false"
-  #     - "xpack.ml.enabled=false"
-  #     - "bootstrap.memory_lock=true"
-  #     - "cluster.name=es-mastodon"
-  #     - "discovery.type=single-node"
-  #     - "thread_pool.write.queue_size=1000"
-  #   networks:
-  #      - external_network
-  #      - internal_network
-  #   healthcheck:
-  #      test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
-  #   volumes:
-  #      - ./elasticsearch:/usr/share/elasticsearch/data
-  #   ulimits:
-  #     memlock:
-  #       soft: -1
-  #       hard: -1
-  #     nofile:
-  #       soft: 65536
-  #       hard: 65536
-  #   ports:
-  #     - '127.0.0.1:9200:9200'
+  es:
+    restart: always
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.4
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.enforce.bootstrap.checks=true"
+      - "xpack.license.self_generated.type=basic"
+      - "xpack.security.enabled=false"
+      - "xpack.watcher.enabled=false"
+      - "xpack.graph.enabled=false"
+      - "xpack.ml.enabled=false"
+      - "bootstrap.memory_lock=true"
+      - "cluster.name=es-mastodon"
+      - "discovery.type=single-node"
+      - "thread_pool.write.queue_size=1000"
+    networks:
+       - external_network
+       - internal_network
+    healthcheck:
+       test: ["CMD-SHELL", "curl --silent --fail localhost:9200/_cluster/health || exit 1"]
+    volumes:
+       - ./elasticsearch:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - '127.0.0.1:9200:9200'
 
   web:
     # You can uncomment the following line if you want to not use the prebuilt image, for example if you have local code changes
@@ -69,29 +69,30 @@ services:
     networks:
       - external_network
       - internal_network
-    dns:                  
+    dns:
       - 8.8.8.8
       - 8.8.4.4
     healthcheck:
       # prettier-ignore
       test: ['CMD-SHELL',"curl -s --noproxy localhost localhost:3000/health | grep -q 'OK' || exit 1"]
     ports:
-      - '80:3000'
+      - '3000:3000'
     depends_on:
       - db
       - redis
-      # - es
+      - es
     volumes:
       - ./public/system:/mastodon/public/system
       - ./public/assets:/mastodon/public/assets:rw
       - ./config/initializers/disable_ssl.rb:/mastodon/config/initializers/disable_ssl.rb
-      - ./app/views/application/mailer/_button.html.haml:/mastodon/app/views/application/mailer/_button.html.haml
+      - ./app/views:/mastodon/app/views
       - ./app/models:/mastodon/app/models
       - ./app/controllers:/mastodon/app/controllers
       - ./app/serializers:/mastodon/app/serializers
       - ./db/migrate:/mastodon/db/migrate
       - ./config/initializers:/mastodon/config/initializers
       - ./config/routes:/mastodon/config/routes
+      - ./config/locales:/mastodon/config/locales
 
   streaming:
     # You can uncomment the following lines if you want to not use the prebuilt image, for example if you have local code changes
@@ -109,18 +110,18 @@ services:
       # prettier-ignore
       test: ['CMD-SHELL', "curl -s --noproxy localhost localhost:4000/api/v1/streaming/health | grep -q 'OK' || exit 1"]
     ports:
-      - '81:4000'
+      - '4000:4000'
     depends_on:
       - db
       - redis
 
   sidekiq:
     # You can uncomment the following line if you want to not use the prebuilt image, for example if you have local code changes
-    # build: .
-    image: ghcr.io/mastodon/mastodon:v4.3.2
+    build: .
+    # image: ghcr.io/mastodon/mastodon:v4.3.2
     restart: always
     env_file: .env.production
-    command: bundle exec sidekiq -q default -q push -q mailers -q pull -q ingress -q scheduler 
+    command: bundle exec sidekiq -q default -q push -q mailers -q pull -q ingress -q scheduler
     depends_on:
       - db
       - redis
@@ -151,7 +152,7 @@ services:
   #     - internal_network
 
 networks:
-  external_network:    
+  external_network:
     driver: bridge
   internal_network:
     internal: true
